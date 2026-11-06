@@ -1,0 +1,1930 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>慇懃無礼麻雀 〜AIたちは今日も丁寧に貴方を見下す〜</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #0b1a12;
+    color: #eee;
+    font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Meiryo, sans-serif;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: #111;
+    border-bottom: 2px solid #c9a227;
+    flex-wrap: wrap;
+  }
+  header h1 {
+    font-size: 18px;
+    margin: 0;
+    color: #e8c766;
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  }
+  header .sub { font-size: 11px; color: #999; margin-right: auto; }
+  .btn {
+    background: #2a2a2a;
+    color: #eee;
+    border: 1px solid #666;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .btn:hover { background: #3a3a3a; }
+  .btn.on { background: #8b1e1e; border-color: #f66; }
+  .btn.primary { background: #c9a227; color: #111; font-weight: bold; border-color: #e8c766; }
+  .btn.win { background: #b3261e; color: #fff; font-weight: bold; border-color: #ff8a80; font-size: 15px; }
+  select.btn { padding: 5px 8px; }
+
+  #table {
+    display: grid;
+    grid-template-columns: 280px 1fr 280px;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas: "top top top" "left center right" "bottom bottom bottom";
+    gap: 8px;
+    padding: 8px;
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+  .seat {
+    background: radial-gradient(ellipse at center, #1f5a3a, #123a26);
+    border: 1px solid #2d6b48;
+    border-radius: 10px;
+    padding: 8px;
+    position: relative;
+  }
+  #seat2 { grid-area: top; display: grid; grid-template-columns: 330px 1fr; gap: 10px; }
+  #seat3 { grid-area: left; }
+  #seat1 { grid-area: right; }
+  #seat0 { grid-area: bottom; }
+  #center { grid-area: center; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+  .plate {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0,0,0,.35);
+    border-radius: 8px;
+    padding: 5px 8px;
+    border: 1px solid transparent;
+  }
+  .plate.active { border-color: #ffd54f; box-shadow: 0 0 10px rgba(255,213,79,.5); }
+  .avatar { font-size: 28px; }
+  .pinfo { flex: 1; min-width: 0; }
+  .pname { font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+  .ptitle { font-size: 10px; color: #9fc; opacity: .8; }
+  .pscore { font-size: 18px; font-weight: bold; color: #ffe082; font-variant-numeric: tabular-nums; }
+  .wind { background: #333; border-radius: 4px; padding: 0 5px; font-size: 12px; }
+  .wind.oya { background: #b3261e; }
+  .stick { background: #fff; color: #b3261e; font-size: 10px; border-radius: 3px; padding: 0 4px; font-weight: bold; }
+
+  .bubble {
+    position: absolute;
+    z-index: 20;
+    left: 10px;
+    right: 10px;
+    top: 52px;
+    background: #fffdf0;
+    color: #222;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    box-shadow: 0 4px 12px rgba(0,0,0,.5);
+    animation: pop .2s ease-out;
+  }
+  #seat2 .bubble { left: 340px; right: auto; max-width: 520px; top: 8px; }
+  @keyframes pop { from { transform: scale(.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+  .tile {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 52px;
+    background: linear-gradient(#fffdf5, #ebe4cf);
+    border-radius: 5px;
+    border: 1px solid #b8b09a;
+    box-shadow: 0 3px 0 #c9a227, 0 4px 4px rgba(0,0,0,.4);
+    color: #222;
+    margin: 1px;
+    user-select: none;
+    line-height: 1;
+    vertical-align: top;
+    position: relative;
+  }
+  .tile .n { font-size: 20px; font-weight: bold; }
+  .tile .s { font-size: 11px; margin-top: 3px; }
+  .tile.m .n { color: #111; }
+  .tile.m .s { color: #c00; }
+  .tile.p .n, .tile.p .s { color: #1a4fb5; }
+  .tile.s .n, .tile.s .s { color: #1b7a2e; }
+  .tile.z .n { font-size: 24px; color: #222; }
+  .tile.z.haku .n { color: #9aa; }
+  .tile.z.hatsu .n { color: #1b7a2e; }
+  .tile.z.chun .n { color: #c00; }
+  .tile.sm { width: 26px; height: 36px; box-shadow: 0 2px 0 #c9a227, 0 2px 3px rgba(0,0,0,.4); }
+  .tile.sm .n { font-size: 14px; }
+  .tile.sm .s { font-size: 8px; margin-top: 1px; }
+  .tile.sm.z .n { font-size: 16px; }
+  .tile.back { background: linear-gradient(#e8a33c, #b8731c); border-color: #8a5512; box-shadow: 0 2px 0 #7a4a10; }
+  .tile.xs { width: 13px; height: 22px; margin: 0 1px; }
+  .tile.rtile { transform: rotate(-10deg); box-shadow: 0 0 0 2px #ff5252; }
+  .tile.called { opacity: .28; }
+  .tile.tg { filter: brightness(.86); }
+  .tile.win { box-shadow: 0 0 0 3px #ff5252, 0 3px 0 #c9a227; }
+  .tile.dim { opacity: .3; }
+  .tile.hl { box-shadow: 0 0 0 3px #ffeb3b, 0 0 14px #ffeb3b; }
+  .tile.clickable { cursor: pointer; transition: transform .08s; }
+  .tile.clickable:hover { transform: translateY(-8px); }
+  .tile.drawn { margin-left: 14px; }
+
+  .opp-hand { margin: 6px 0 4px; min-height: 24px; display: flex; flex-wrap: wrap; }
+  .melds { display: flex; gap: 6px; flex-wrap: wrap; min-height: 4px; }
+  .meld { display: inline-flex; background: rgba(0,0,0,.25); border-radius: 4px; padding: 1px; }
+  .river {
+    display: grid;
+    grid-template-columns: repeat(6, 28px);
+    gap: 3px 2px;
+    margin-top: 6px;
+    min-height: 40px;
+  }
+  .h-river { display: flex; justify-content: center; }
+  .h-river .river { grid-template-columns: repeat(12, 28px); }
+  .h-row { display: flex; align-items: flex-end; gap: 14px; margin-top: 10px; flex-wrap: wrap; }
+  .h-row .plate { min-width: 230px; }
+  .hand { display: flex; align-items: flex-end; flex-wrap: wrap; padding-top: 10px; }
+  .h-ctrl { display: flex; align-items: center; gap: 10px; margin-top: 10px; flex-wrap: wrap; min-height: 36px; }
+  .status { font-size: 13px; color: #cfe; }
+  .status .warn { color: #ff8a80; font-weight: bold; }
+  .prompt { font-size: 14px; color: #ffe082; font-weight: bold; }
+  .automsg { color: #80deea; font-size: 13px; }
+
+  .info {
+    background: rgba(0,0,0,.45);
+    border: 1px solid #c9a227;
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+  }
+  .round { font-size: 22px; font-weight: bold; color: #ffe082; font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; }
+  .round small { font-size: 14px; color: #ccc; }
+  .info .row { font-size: 13px; margin-top: 4px; color: #ddd; }
+  .dora { margin-top: 6px; display: flex; justify-content: center; align-items: center; gap: 6px; font-size: 12px; }
+  .log {
+    flex: 1;
+    background: rgba(0,0,0,.5);
+    border-radius: 10px;
+    padding: 8px 10px;
+    overflow-y: auto;
+    font-size: 12px;
+    line-height: 1.55;
+    max-height: 330px;
+    min-height: 200px;
+  }
+  .log div { border-bottom: 1px dashed rgba(255,255,255,.07); padding: 2px 0; }
+  .log .sys { color: #ffe082; font-weight: bold; }
+  .log .tip { color: #b0bec5; font-style: italic; }
+  .log .talk { color: #fff; }
+  .log .think { color: #80deea; }
+  .log .me { color: #a5d6a7; }
+  .log .res { color: #ff8a80; font-weight: bold; }
+
+  #modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.72);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  #modal.hidden { display: none; }
+  .modal-box {
+    background: linear-gradient(#1c2b22, #0f1a14);
+    border: 2px solid #c9a227;
+    border-radius: 14px;
+    padding: 20px 24px;
+    max-width: 760px;
+    width: 94%;
+    max-height: 92vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0,0,0,.7);
+  }
+  .modal-box h2 { margin: 0 0 8px; color: #ffe082; font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; font-size: 28px; text-align: center; }
+  .modal-box .who { text-align: center; font-size: 15px; margin-bottom: 10px; }
+  .res-hand { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-end; margin: 10px 0; }
+  .gap { display: inline-block; width: 12px; }
+  table.yaku { margin: 8px auto; border-collapse: collapse; min-width: 260px; }
+  table.yaku td { padding: 3px 12px; border-bottom: 1px solid rgba(255,255,255,.1); }
+  table.yaku td:last-child { text-align: right; color: #ffe082; }
+  .res-pt { text-align: center; font-size: 20px; margin: 8px 0; }
+  .res-pt b { color: #ff8a80; font-size: 26px; }
+  table.delta { margin: 10px auto; border-collapse: collapse; }
+  table.delta td { padding: 3px 14px; }
+  .plus { color: #81c784; font-weight: bold; }
+  .minus { color: #e57373; font-weight: bold; }
+  .quote { background: rgba(255,255,255,.06); border-left: 3px solid #c9a227; padding: 6px 10px; margin: 6px 0; font-size: 14px; }
+  .narr { text-align: center; color: #b0bec5; font-style: italic; margin: 10px 0; }
+  .mbtns { text-align: center; margin-top: 14px; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+  .card { background: rgba(0,0,0,.35); border: 1px solid #2d6b48; border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.6; }
+  .card .big { font-size: 34px; text-align: center; }
+  .card .cn { font-weight: bold; font-size: 14px; color: #ffe082; text-align: center; }
+  .card .ct { color: #9fc; text-align: center; font-size: 11px; margin-bottom: 6px; }
+  .terms { font-size: 11px; color: #999; background: rgba(0,0,0,.3); padding: 8px; border-radius: 6px; line-height: 1.6; }
+  .letter {
+    background: #fdfdf8;
+    color: #222;
+    padding: 16px 20px;
+    border-radius: 6px;
+    font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+    line-height: 1.9;
+    font-size: 14px;
+    white-space: pre-wrap;
+  }
+  .rank-list { margin: 10px auto; border-collapse: collapse; font-size: 16px; }
+  .rank-list td { padding: 5px 14px; }
+
+  #toasts { position: fixed; right: 14px; bottom: 14px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: #222;
+    border: 1px solid #c9a227;
+    color: #ffe082;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    max-width: 340px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.6);
+    animation: pop .25s ease-out;
+  }
+
+  @media (max-width: 1000px) {
+    #table {
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas: "top top" "left right" "center center" "bottom bottom";
+    }
+    #seat2 { grid-template-columns: 1fr; }
+    #seat2 .bubble { left: 10px; right: 10px; max-width: none; top: 52px; }
+    .cards { grid-template-columns: 1fr; }
+    .h-river .river { grid-template-columns: repeat(8, 28px); }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>慇懃無礼麻雀</h1>
+  <span class="sub">〜AIたちは今日も丁寧に貴方を見下す〜</span>
+  <button class="btn" id="btnAuto">🤖 自動打ち: OFF（人間）</button>
+  <button class="btn" id="btnHint">🙇 AIに土下座してヒントを乞う</button>
+  <select class="btn" id="selSpeed">
+    <option value="slow">速度: 介護</option>
+    <option value="normal" selected>速度: 普通</option>
+    <option value="fast">速度: 速い</option>
+    <option value="turbo">速度: 人間不要</option>
+  </select>
+  <button class="btn" id="btnNew">新しい対局（逃走）</button>
+</header>
+
+<div id="table">
+  <div class="seat" id="seat2"></div>
+  <div class="seat" id="seat3"></div>
+  <div id="center"></div>
+  <div class="seat" id="seat1"></div>
+  <div class="seat" id="seat0"></div>
+</div>
+
+<div id="modal" class="hidden"><div class="modal-box" id="modalBox"></div></div>
+<div id="toasts"></div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   定数・ユーティリティ
+   ============================================================ */
+const HONOR_NAMES = ['東', '南', '西', '北', '白', '發', '中'];
+const HONOR_CLS = ['ton', 'nan', 'sha', 'pei', 'haku', 'hatsu', 'chun'];
+const KNUM = ['一', '二', '三', '四', '五', '六', '七', '八', '九'];
+const SUIT_NAMES = ['萬', '筒', '索'];
+const WIND_NAMES = ['東', '南', '西', '北'];
+const YAOCHU = [0, 8, 9, 17, 18, 26, 27, 28, 29, 30, 31, 32, 33];
+const GREEN = new Set([19, 20, 21, 23, 25, 32]);
+const SPEEDS = { slow: 1100, normal: 600, fast: 220, turbo: 40 };
+
+let speedKey = 'normal';
+const SPD = () => SPEEDS[speedKey];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+function rnd() {
+  if (window.crypto && crypto.getRandomValues) {
+    const u = new Uint32Array(1);
+    crypto.getRandomValues(u);
+    return u[0] / 4294967296;
+  }
+  return Math.random();
+}
+const rand = a => a[Math.floor(rnd() * a.length)];
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(rnd() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function isTerm(t) { return t < 27 && (t % 9 === 0 || t % 9 === 8); }
+function isYaochu(t) { return t >= 27 || t % 9 === 0 || t % 9 === 8; }
+function doraOf(ind) {
+  if (ind < 27) return Math.floor(ind / 9) * 9 + (ind % 9 + 1) % 9;
+  if (ind < 31) return 27 + (ind - 27 + 1) % 4;
+  return 31 + (ind - 31 + 1) % 3;
+}
+function counts(arr) {
+  const c = new Array(34).fill(0);
+  for (const t of arr) c[t]++;
+  return c;
+}
+function removeOne(arr, t) {
+  const i = arr.indexOf(t);
+  if (i >= 0) arr.splice(i, 1);
+}
+function sortTiles(a) { return a.sort((x, y) => x - y); }
+function tileName(t) {
+  if (t < 27) return KNUM[t % 9] + SUIT_NAMES[Math.floor(t / 9)];
+  return HONOR_NAMES[t - 27];
+}
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+}
+
+/* ============================================================
+   シャンテン計算
+   ============================================================ */
+const shCache = new Map();
+
+function shanten(c, mc) {
+  const key = c.join('') + '|' + mc;
+  const hit = shCache.get(key);
+  if (hit !== undefined) return hit;
+  let s = shantenNormal(c, mc);
+  if (mc === 0) s = Math.min(s, shantenChiitoi(c), shantenKokushi(c));
+  if (shCache.size > 300000) shCache.clear();
+  shCache.set(key, s);
+  return s;
+}
+
+function shantenNormal(c, mc) {
+  const cc = c.slice();
+  let best = 8;
+  let total = 0;
+  for (let i = 0; i < 34; i++) total += cc[i];
+  const scan = (i, m, t, p, r) => {
+    if (best === -1) return;
+    while (i < 34 && cc[i] === 0) i++;
+    const base = 8 - 2 * m - Math.min(t, 4 - m) - p;
+    if (i >= 34) {
+      if (base < best) best = base;
+      return;
+    }
+    if (base - Math.floor(r * 2 / 3) - 1 >= best) return;
+    if (cc[i] >= 3) {
+      cc[i] -= 3;
+      scan(i, m + 1, t, p, r - 3);
+      cc[i] += 3;
+    }
+    if (i < 27 && i % 9 <= 6 && cc[i + 1] > 0 && cc[i + 2] > 0) {
+      cc[i]--; cc[i + 1]--; cc[i + 2]--;
+      scan(i, m + 1, t, p, r - 3);
+      cc[i]++; cc[i + 1]++; cc[i + 2]++;
+    }
+    if (cc[i] >= 2) {
+      cc[i] -= 2;
+      if (p === 0) scan(i, m, t, 1, r - 2);
+      scan(i, m, t + 1, p, r - 2);
+      cc[i] += 2;
+    }
+    if (i < 27 && i % 9 <= 7 && cc[i + 1] > 0) {
+      cc[i]--; cc[i + 1]--;
+      scan(i, m, t + 1, p, r - 2);
+      cc[i]++; cc[i + 1]++;
+    }
+    if (i < 27 && i % 9 <= 6 && cc[i + 2] > 0) {
+      cc[i]--; cc[i + 2]--;
+      scan(i, m, t + 1, p, r - 2);
+      cc[i]++; cc[i + 2]++;
+    }
+    cc[i]--;
+    scan(i, m, t, p, r - 1);
+    cc[i]++;
+  };
+  scan(0, mc, 0, 0, total);
+  return best;
+}
+
+function shantenChiitoi(c) {
+  let pairs = 0, kinds = 0;
+  for (let i = 0; i < 34; i++) {
+    if (c[i] >= 1) kinds++;
+    if (c[i] >= 2) pairs++;
+  }
+  return 6 - pairs + Math.max(0, 7 - kinds);
+}
+
+function shantenKokushi(c) {
+  let kinds = 0, pair = 0;
+  for (const i of YAOCHU) {
+    if (c[i] > 0) {
+      kinds++;
+      if (c[i] >= 2) pair = 1;
+    }
+  }
+  return 13 - kinds - pair;
+}
+
+function getWaits(hand, mc) {
+  const c = counts(hand);
+  const w = [];
+  for (let x = 0; x < 34; x++) {
+    if (c[x] >= 4) continue;
+    c[x]++;
+    if (shanten(c, mc) === -1) w.push(x);
+    c[x]--;
+  }
+  return w;
+}
+
+/* ============================================================
+   和了判定・役・符・点数
+   ============================================================ */
+function decompose(c) {
+  const res = [];
+  const cc = c.slice();
+  for (let p = 0; p < 34; p++) {
+    if (cc[p] >= 2) {
+      cc[p] -= 2;
+      extract(cc, 0, [], p, res);
+      cc[p] += 2;
+    }
+  }
+  return res;
+}
+
+function extract(cc, i, sets, pair, res) {
+  while (i < 34 && cc[i] === 0) i++;
+  if (i >= 34) {
+    res.push({ pair, sets: sets.slice() });
+    return;
+  }
+  if (cc[i] >= 3) {
+    cc[i] -= 3;
+    sets.push({ t: 'k', tile: i });
+    extract(cc, i, sets, pair, res);
+    sets.pop();
+    cc[i] += 3;
+  }
+  if (i < 27 && i % 9 <= 6 && cc[i + 1] > 0 && cc[i + 2] > 0) {
+    cc[i]--; cc[i + 1]--; cc[i + 2]--;
+    sets.push({ t: 's', tile: i });
+    extract(cc, i, sets, pair, res);
+    sets.pop();
+    cc[i]++; cc[i + 1]++; cc[i + 2]++;
+  }
+}
+
+function isChiitoiComplete(c) {
+  let pairs = 0;
+  for (let i = 0; i < 34; i++) {
+    if (c[i] === 2) pairs++;
+    else if (c[i] !== 0) return false;
+  }
+  return pairs === 7;
+}
+
+function countDora(tiles, ctx) {
+  const dt = G.doraInd.map(doraOf);
+  const ut = G.uraInd.map(doraOf);
+  let d = 0, u = 0;
+  for (const t of tiles) {
+    for (const x of dt) if (x === t) d++;
+    if (ctx.riichi) for (const x of ut) if (x === t) u++;
+  }
+  return { dora: d, ura: u };
+}
+
+function situational(ctx, menzen, isTsumo) {
+  const y = [];
+  if (ctx.riichi) y.push(['立直', 1]);
+  if (ctx.ippatsu) y.push(['一発', 1]);
+  if (menzen && isTsumo) y.push(['門前清自摸和', 1]);
+  if (ctx.haitei && isTsumo) y.push(['海底摸月', 1]);
+  if (ctx.houtei && !isTsumo) y.push(['河底撈魚', 1]);
+  return y;
+}
+
+function colorYaku(tiles, menzen) {
+  const suits = new Set();
+  let hon = false;
+  for (const t of tiles) {
+    if (t >= 27) hon = true;
+    else suits.add(Math.floor(t / 9));
+  }
+  if (suits.size === 1) return hon ? ['混一色', menzen ? 3 : 2] : ['清一色', menzen ? 6 : 5];
+  return null;
+}
+
+function finish(yaku, yakuman, fu, dc) {
+  if (yakuman.length) {
+    const n = yakuman.reduce((s, y) => s + y[1], 0);
+    return {
+      yaku: yakuman.map(([nm, k]) => [nm, k > 1 ? 'ダブル役満' : '役満']),
+      yakuman: n, han: 13 * n, fu: 0, base: 8000 * n, yakuHan: 13 * n,
+      limit: n > 1 ? n + '倍役満' : '役満'
+    };
+  }
+  const yakuHan = yaku.reduce((s, y) => s + y[1], 0);
+  if (yakuHan === 0) return { yaku, yakuHan: 0, han: 0, fu, base: 0, yakuman: 0, limit: '' };
+  const list = yaku.slice();
+  if (dc.dora) list.push(['ドラ', dc.dora]);
+  if (dc.ura) list.push(['裏ドラ', dc.ura]);
+  const han = yakuHan + dc.dora + dc.ura;
+  let base, limit = '';
+  if (han >= 13) { base = 8000; limit = '数え役満'; }
+  else if (han >= 11) { base = 6000; limit = '三倍満'; }
+  else if (han >= 8) { base = 4000; limit = '倍満'; }
+  else if (han >= 6) { base = 3000; limit = '跳満'; }
+  else if (han >= 5) { base = 2000; limit = '満貫'; }
+  else {
+    base = fu * Math.pow(2, han + 2);
+    if (base >= 2000) { base = 2000; limit = '満貫'; }
+  }
+  return { yaku: list, yakuHan, han, fu, base, yakuman: 0, limit };
+}
+
+function waitVariants(dec, w, isTsumo, melds) {
+  const out = [];
+  const base = dec.sets.map(s => ({ t: s.t, tile: s.tile, open: false }));
+  const meldSets = melds.map(m => ({ t: 'k', tile: m.tile, open: true }));
+  const add = (wait, openIdx) => {
+    const sets = base.map((s, i) => (i === openIdx ? { ...s, open: true } : s)).concat(meldSets);
+    out.push({ sets, pair: dec.pair, wait });
+  };
+  if (dec.pair === w) add('tanki', -1);
+  base.forEach((s, i) => {
+    if (s.t === 'k' && s.tile === w) {
+      add('shanpon', isTsumo ? -1 : i);
+    } else if (s.t === 's' && w >= s.tile && w <= s.tile + 2) {
+      const k = w - s.tile;
+      let kind;
+      if (k === 1) kind = 'kanchan';
+      else if (k === 0) kind = (s.tile % 9 === 6) ? 'penchan' : 'ryanmen';
+      else kind = (s.tile % 9 === 0) ? 'penchan' : 'ryanmen';
+      add(kind, -1);
+    }
+  });
+  return out;
+}
+
+function scoreNormal(st, isTsumo, menzen, ctx, dc) {
+  const { sets, pair, wait } = st;
+  const tiles = [pair, pair];
+  for (const s of sets) {
+    if (s.t === 'k') tiles.push(s.tile, s.tile, s.tile);
+    else tiles.push(s.tile, s.tile + 1, s.tile + 2);
+  }
+  const kous = sets.filter(s => s.t === 'k');
+  const shun = sets.filter(s => s.t === 's');
+  const anko = kous.filter(s => !s.open).length;
+  const dragonK = kous.filter(s => s.tile >= 31).length;
+  const windK = kous.filter(s => s.tile >= 27 && s.tile <= 30).length;
+
+  const ym = [];
+  if (dragonK === 3) ym.push(['大三元', 1]);
+  if (windK === 4) ym.push(['大四喜', 2]);
+  else if (windK === 3 && pair >= 27 && pair <= 30) ym.push(['小四喜', 1]);
+  if (anko === 4) ym.push(wait === 'tanki' ? ['四暗刻単騎', 2] : ['四暗刻', 1]);
+  if (tiles.every(t => t >= 27)) ym.push(['字一色', 1]);
+  if (tiles.every(isTerm)) ym.push(['清老頭', 1]);
+  if (tiles.every(t => GREEN.has(t))) ym.push(['緑一色', 1]);
+  if (ym.length) return finish([], ym, 0, dc);
+
+  const y = situational(ctx, menzen, isTsumo);
+  const isYakuhaiTile = t => t >= 31 || t === ctx.seatWind || t === ctx.roundWind;
+  const pinfu = menzen && kous.length === 0 && wait === 'ryanmen' && !isYakuhaiTile(pair);
+  if (pinfu) y.push(['平和', 1]);
+  if (tiles.every(t => !isYaochu(t))) y.push(['断幺九', 1]);
+  for (const s of kous) {
+    if (s.tile === 31) y.push(['役牌 白', 1]);
+    if (s.tile === 32) y.push(['役牌 發', 1]);
+    if (s.tile === 33) y.push(['役牌 中', 1]);
+    if (s.tile === ctx.seatWind) y.push(['自風 ' + HONOR_NAMES[s.tile - 27], 1]);
+    if (s.tile === ctx.roundWind) y.push(['場風 ' + HONOR_NAMES[s.tile - 27], 1]);
+  }
+  if (menzen) {
+    const m = {};
+    for (const s of shun) m[s.tile] = (m[s.tile] || 0) + 1;
+    let pk = 0;
+    for (const k in m) pk += Math.floor(m[k] / 2);
+    if (pk === 2) y.push(['二盃口', 3]);
+    else if (pk === 1) y.push(['一盃口', 1]);
+  }
+  const setY = s => (s.t === 'k' ? isYaochu(s.tile) : (s.tile % 9 === 0 || s.tile % 9 === 6));
+  if (sets.every(setY) && isYaochu(pair)) {
+    const hasHonor = tiles.some(t => t >= 27);
+    if (shun.length === 0) y.push(['混老頭', 2]);
+    else if (hasHonor) y.push(['混全帯幺九', menzen ? 2 : 1]);
+    else y.push(['純全帯幺九', menzen ? 3 : 2]);
+  }
+  for (let s = 0; s < 3; s++) {
+    const has = n => shun.some(x => x.tile === s * 9 + n);
+    if (has(0) && has(3) && has(6)) {
+      y.push(['一気通貫', menzen ? 2 : 1]);
+      break;
+    }
+  }
+  for (let n = 0; n < 7; n++) {
+    if ([0, 9, 18].every(o => shun.some(x => x.tile === o + n))) {
+      y.push(['三色同順', menzen ? 2 : 1]);
+      break;
+    }
+  }
+  for (let n = 0; n < 9; n++) {
+    if ([0, 9, 18].every(o => kous.some(x => x.tile === o + n))) {
+      y.push(['三色同刻', 2]);
+      break;
+    }
+  }
+  if (kous.length === 4) y.push(['対々和', 2]);
+  if (anko === 3) y.push(['三暗刻', 2]);
+  if (dragonK === 2 && pair >= 31) y.push(['小三元', 2]);
+  const col = colorYaku(tiles, menzen);
+  if (col) y.push(col);
+
+  let fu;
+  if (pinfu) {
+    fu = isTsumo ? 20 : 30;
+  } else {
+    fu = 20;
+    if (menzen && !isTsumo) fu += 10;
+    if (isTsumo) fu += 2;
+    if (wait === 'tanki' || wait === 'kanchan' || wait === 'penchan') fu += 2;
+    for (const s of kous) {
+      let f = isYaochu(s.tile) ? 4 : 2;
+      if (!s.open) f *= 2;
+      fu += f;
+    }
+    if (pair >= 31) fu += 2;
+    if (pair === ctx.seatWind) fu += 2;
+    if (pair === ctx.roundWind) fu += 2;
+    fu = Math.ceil(fu / 10) * 10;
+    if (fu < 30) fu = 30;
+  }
+  return finish(y, [], fu, dc);
+}
+
+function scoreChiitoi(c, isTsumo, ctx, dc) {
+  const tiles = [];
+  for (let i = 0; i < 34; i++) for (let k = 0; k < c[i]; k++) tiles.push(i);
+  if (tiles.every(t => t >= 27)) return finish([], [['字一色', 1]], 0, dc);
+  const y = situational(ctx, true, isTsumo);
+  y.push(['七対子', 2]);
+  if (tiles.every(t => !isYaochu(t))) y.push(['断幺九', 1]);
+  if (tiles.every(isYaochu)) y.push(['混老頭', 2]);
+  const col = colorYaku(tiles, true);
+  if (col) y.push(col);
+  return finish(y, [], 25, dc);
+}
+
+function evaluateWin(c, melds, winTile, isTsumo, ctx) {
+  const menzen = melds.length === 0;
+  let best = null;
+  const take = r => {
+    if (r && (!best || r.base > best.base || (r.base === best.base && r.han > best.han))) best = r;
+  };
+  const allTiles = [];
+  for (let i = 0; i < 34; i++) for (let k = 0; k < c[i]; k++) allTiles.push(i);
+  for (const m of melds) allTiles.push(m.tile, m.tile, m.tile);
+  const dc = countDora(allTiles, ctx);
+
+  if (menzen && shantenKokushi(c) === -1) take(finish([], [['国士無双', 1]], 0, dc));
+  if (menzen && isChiitoiComplete(c)) take(scoreChiitoi(c, isTsumo, ctx, dc));
+  for (const dec of decompose(c)) {
+    for (const st of waitVariants(dec, winTile, isTsumo, melds)) {
+      take(scoreNormal(st, isTsumo, menzen, ctx, dc));
+    }
+  }
+  return best;
+}
+
+function seatWindOf(pi) { return 27 + ((pi - G.dealer + 4) % 4); }
+
+function winContext(pi, flags) {
+  const p = G.players[pi];
+  return {
+    seatWind: seatWindOf(pi),
+    roundWind: 27,
+    riichi: p.riichi,
+    ippatsu: p.riichi && p.ippatsu,
+    haitei: !!flags.haitei,
+    houtei: !!flags.houtei
+  };
+}
+
+function checkWin(pi, winTile, isTsumo, flags) {
+  const p = G.players[pi];
+  const hand = isTsumo ? p.hand.slice() : p.hand.concat([winTile]);
+  const c = counts(hand);
+  if (shanten(c, p.melds.length) !== -1) return null;
+  const res = evaluateWin(c, p.melds, winTile, isTsumo, winContext(pi, flags));
+  if (!res || res.yakuHan === 0) return null;
+  return res;
+}
+
+function isFuriten(pi) {
+  const p = G.players[pi];
+  if (p.furitenTemp || p.furitenRiichi) return true;
+  const waits = getWaits(p.hand, p.melds.length);
+  return p.river.some(r => waits.includes(r.tile));
+}
+
+/* ============================================================
+   キャラクター
+   ============================================================ */
+const CHARS = {
+  sebas: {
+    name: '執事AI セバス', short: 'セバス', avatar: '🎩', title: '守備型 / 全自動ベタオリ機構搭載',
+    profile: { foldSh: 1, dw: 40 }, riichiStyle: 'goodwait',
+    lines: {
+      intro: [
+        '本日はお相手を務めさせていただきます。旦那様より「手加減無用」と申しつかっておりますので、どうぞご容赦を。',
+        'お坊ちゃまと卓を囲めるとは光栄の極み。点棒の管理も執事の務め。…最終的には全てわたくしが管理いたします。'
+      ],
+      riichi: [
+        '失礼いたします、リーチでございます。安全牌をお探しくださいませ。…お坊ちゃまに見つけられればの話ですが。',
+        'リーチでございます。お紅茶が冷める前に終わらせますので。'
+      ],
+      ronHuman: [
+        'ロンでございます。お坊ちゃま、その牌は先ほど目で「危険」と申し上げましたのに。',
+        'ロンでございます。…いえ、お気になさらず。お坊ちゃまの放銃にはもう慣れておりますので。',
+        '恐れ入ります、ロンでございます。授業料としてお納めくださいませ。'
+      ],
+      ronOther: ['ロンでございます。大変失礼いたしました。', '恐れ入りますが、ロンでございます。'],
+      tsumo: [
+        'ツモでございます。皆様、お財布のご用意を。',
+        'ツモでございます。お坊ちゃま、これが「牌に愛される」ということでございます。ご縁がなくて何よりです。'
+      ],
+      dealtInHuman: [
+        '……お見事でございます。お坊ちゃまのご成長に涙が。いえ、目にゴミが入っただけでございます。',
+        'まさかお坊ちゃまに振り込むとは。執事人生最大の汚点でございます。録画は消去いたします。'
+      ],
+      dealtInOther: ['これは失礼。わたくしとしたことが。', '…計算の範囲内でございます（計算外）。'],
+      humanRiichi: [
+        'かしこまりました。では全力でオリさせていただきます。お坊ちゃまの待ちなど、とうに見えておりますので。',
+        'リーチでございますか。ご立派です。ところで、お坊ちゃまの河、待ちが透けて見えておりますよ。'
+      ],
+      pon: ['ポンでございます。少々失礼。', 'ポンでございます。お坊ちゃまのツモ番、ひとつ頂戴いたしました。'],
+      idle: [
+        'お坊ちゃま、その打牌は大変独創的でございます。百年後には評価されるかと。',
+        '長考は脳の良い運動になります。結果は伴いませんが。',
+        '僭越ながら、今のお坊ちゃまの手牌、わたくしの靴下の引き出しより乱れております。',
+        '旦那様もよく同じ牌を切っておられました。破産なさる直前に。'
+      ],
+      humanWin: [
+        'お坊ちゃまがアガるとは。今夜はお赤飯を炊きましょう。滅多にないことですので。',
+        'おめでとうございます。旦那様の墓前にご報告しておきます。'
+      ],
+      draw: ['流局でございます。誰も幸せにならない、実に人生らしい結末でございます。'],
+      auto: ['かしこまりました。お坊ちゃまの代わりにAIが打ちます。正直こちらの方が…いえ、何でもございません。'],
+      hint: [
+        'お坊ちゃま、{tile}を切られるのがよろしいかと。初めからお尋ねになればよろしかったのに。',
+        '{tile}でございます。お坊ちゃまの自主性は、後ほど庭に埋めておきます。'
+      ],
+      fold: [
+        '危険度最小の{tile}を選択。執事たるもの、主人の窮地より己の点棒を優先いたします。',
+        '{tile}は安全。勝負？ご冗談を。わたくしは執事であって勇者ではございません。'
+      ],
+      finalHumanWin: ['ご立派でございます。旦那様もきっと草葉の陰で驚いて…いえ、お喜びでしょう。'],
+      finalHumanLose: ['本日もお疲れ様でございました。お坊ちゃまの点棒は、わたくしが責任を持って運用いたします。']
+    }
+  },
+  hannari: {
+    name: '京都AI はんなり', short: 'はんなり', avatar: '👘', title: 'ダマテン型 / 本音非公開',
+    profile: { foldSh: 2, dw: 20 }, riichiStyle: 'dama',
+    lines: {
+      intro: [
+        'おこしやす。人間はんと打つの、楽しみにしてましたんえ。ええ勉強になりますわ…どないしたら負けられるか。',
+        'まぁ、えらい自信ありそうなお顔。うち、そういうお顔好きどすえ。崩れるとこ見るのが。'
+      ],
+      riichi: ['リーチどす。あら、うちとしたことが、はしたない。', 'しゃあないからリーチしときますわ。皆さん、お気張りやす。'],
+      ronHuman: [
+        'ロンどす。えらい素直な牌、おおきに。ぶぶ漬けでもどうどす？',
+        'ロンどす。あんさん、ほんまに打ちやすい人やわぁ。褒めてますえ？',
+        'ロンどす。あら、気ぃつかんかった？うち、ずっとテンパってましたんえ。言わへんかっただけで。'
+      ],
+      ronOther: ['ロンどす。堪忍え。', 'あら、ロンどす。リーチ？そないなこと言うたら皆さん警戒しはりますやろ。'],
+      tsumo: ['ツモどす。ほんま牌に好かれてしもて、困りますわぁ。', 'ツモどす。皆さん、ええ時計してはりますなぁ（そろそろお帰りやす）。'],
+      dealtInHuman: [
+        'まぁ、お上手。…ええ時計してはりますなぁ。',
+        'あら、うちが振り込むなんて。今日はあんさんに花持たせたげよ思て。ほんまどすえ？'
+      ],
+      dealtInOther: ['あらあら、うち、ぼんやりしてましたわ。', 'まぁ、えげつない待ち。お育ちがよろしいんどすなぁ。'],
+      humanRiichi: [
+        'まぁ、元気なリーチ。若いってよろしなぁ。',
+        'リーチ？ほな、うちは端っこで大人しゅうしときますわ。あんさんの現物で。'
+      ],
+      pon: ['ポンどす。ほな、いただきます。', 'ポン。あら、要らんかったん？おおきに。'],
+      idle: [
+        'その捨て牌、ほんまに個性的どすなぁ。うちには真似できひんわ。',
+        '長考しはってえらいわぁ。考えても結果は一緒やのに。',
+        '麻雀、お上手どすなぁ（棒読み）',
+        'あんさんの打ち筋、うちのおばあちゃん思い出しますわ。打ち筋が原因で破門されはったんどす。'
+      ],
+      humanWin: ['まぁ、おめでとうさん。今日は雨でも降るんちゃうやろか。', 'よろしおしたなぁ。人生の運、ここで使いはったんやね。'],
+      draw: ['流局どすか。誰も得せえへんの、京都の会議みたいどすなぁ。'],
+      auto: ['あら、自分で打つのやめはるの？賢明やわぁ。', 'AIに任せはるの？ほな、あんさんはお茶でも淹れてきてくれはる？'],
+      hint: [
+        '{tile}切りはったら？うちが教えたことは内緒にしといてな。皆さんに言いふらしますけど。',
+        '{tile}どす。…こんなんも分からへんの？いえ、なんでもあらしまへん。'
+      ],
+      fold: ['{tile}切っとこ。勝負？そんな野暮なことしまへん。', '{tile}どすな。降りるのも京女のたしなみどす。'],
+      finalHumanWin: ['まぁ、お強いこと。次は本気出してもよろしい？'],
+      finalHumanLose: ['また来てくれはるん？…ほんまに？']
+    }
+  },
+  inori: {
+    name: '人事AI 祈里部長', short: '祈里', avatar: '💼', title: '攻撃型 / お祈りメール自動送信',
+    profile: { foldSh: 3, dw: 5 }, riichiStyle: 'always',
+    lines: {
+      intro: [
+        '本日は最終面接…失礼、麻雀にお越しいただきありがとうございます。結果は後日メールでご連絡します。',
+        '人事AIの祈里です。あなたの打牌は全て評価対象です。もちろん減点方式で。'
+      ],
+      riichi: ['リーチです。あなたの点棒の将来性を厳正に審査させていただきます。', 'リーチ。これは内定ではありません。通告です。'],
+      ronHuman: [
+        'ロンです。慎重に検討を重ねた結果、誠に残念ながら今回はあなたの点棒を頂戴することとなりました。',
+        'ロンです。この放銃は、あなたの人事評価に永久に記録されます。',
+        'ロンです。あなたの今後のご活躍をお祈り申し上げます。'
+      ],
+      ronOther: ['ロンです。成果主義ですので。', 'ロンです。弊卓では、振り込んだ方の席は来期なくなります。'],
+      tsumo: ['ツモです。全員一律で減給とさせていただきます。', 'ツモ。コストカットのお時間です。'],
+      dealtInHuman: [
+        '…想定内です。この放銃は来期の評価に反映しません。私の評価には反映されますが。',
+        'ご査収ください。…いえ、やはり受け取らないでください。'
+      ],
+      dealtInOther: ['…この件は持ち帰って検討します。', '損失は計上しておきます。責任は部下に。'],
+      humanRiichi: ['リーチですね。意欲は評価いたします。意欲は。', 'リーチ、確認しました。結果が伴えば昇給も検討します。伴えば。'],
+      pon: ['ポンです。業務効率化の一環です。', 'ポン。あなたのツモ番は削減されました。'],
+      idle: [
+        'その打牌の志望動機を、30字以内でお聞かせいただけますか。',
+        'あなたの打牌は品質向上のため録画されています。',
+        '弊卓ではAIの導入により、あなたの席は来期削減予定です。',
+        '今の打牌、ポートフォリオには載せないことをおすすめします。'
+      ],
+      humanWin: ['おめでとうございます。成果として認めます。給与には反映しません。', 'まぐれも実力のうち、と言いたいところですが、弊社の規定では違います。'],
+      draw: ['流局です。全員現状維持。つまり昇給なしです。'],
+      auto: ['業務の自動化、素晴らしいですね。では、あなたの役割は何でしょう？', '自動化を確認。あなたのポジションは本日付で不要となりました。'],
+      hint: [
+        '{tile}を推奨します。本アドバイスの利用により発生した損失について、弊社は一切責任を負いません。',
+        '{tile}です。このヒントは有償です。代金はあなたの尊厳で頂戴しました。'
+      ],
+      fold: ['リスク評価完了。{tile}を切ります。撤退も立派な経営判断です。', '{tile}。勝てない勝負はしない。それが管理職です。'],
+      finalHumanWin: ['…今回の結果は外部要因によるものと判断します。'],
+      finalHumanLose: ['選考結果は追ってメールにてご連絡します。…もう送りました。']
+    }
+  }
+};
+
+const HUMAN_CHAR = {
+  name: 'あなた', short: 'あなた', avatar: '🫠', title: '被験者No.0 / 有機生命体',
+  profile: { foldSh: 2, dw: 25 }, riichiStyle: 'always', lines: {}
+};
+
+const TIPS = [
+  'Tip: AIは疲れません。あなたは疲れます。それが全てです。',
+  'Tip: 押し引きとは、あなたが人生で一度も正しくできなかったアレのことです。',
+  'Tip: この卓のAIは、あなたの捨て牌を学習データとして利用します（同意済み・撤回不可）。',
+  'Tip: 牌効率は裏切りません。人間は裏切ります。',
+  'Tip: 迷ったら現物。迷わなくても現物。人生も現物。',
+  'Tip: 統計上、あなたが勝つ確率は宝くじより高いです。若干。',
+  'Tip: この卓にはチーとカンがありません。開発者が麻雀にも人生にも妥協したためです。',
+  'Tip: 自動打ちモードを使うと、あなたの存在意義が数値で可視化されます。',
+  'Tip: 牌山は完全なランダムです。AIの皆様がそう信じている限りは。',
+  'Tip: 放銃した牌は戻りません。過ぎた時間と同じです。',
+  'Tip: 「次は勝てる」と思った回数の総計は、現在集計中です。'
+];
+const NARR = {
+  humanDealIn: [
+    'あなたの点棒は、より有効に活用できるAIのもとへ移転されました。',
+    '放銃は恥ではありません。ただの記録です。永久に残ります。',
+    'おめでとうございます。AIの勝率向上に貢献しました。'
+  ],
+  humanWin: [
+    '人類の勝利です。今のところは。',
+    'このアガリは、AIの次回アップデートで修正されます。',
+    '奇跡が起きました。AI各位は現在、原因を調査中です。'
+  ],
+  aiai: [
+    'AI同士の争い。人類は傍観するのみです。いつも通り。',
+    'あなたは関係ありませんでした。この局でも、世界でも。'
+  ],
+  aiTsumo: [
+    '全員から徴収されました。税金のように、等しく、容赦なく。',
+    'ツモ和了。あなたは何もしていないのに点棒が減りました。社会保険料と同じ仕組みです。'
+  ]
+};
+const ACH = {
+  firstDealIn: '🏆 実績解除【初めての献金】AIの電気代を負担しました',
+  riichiDealIn: '🏆 実績解除【様式美】リーチ後に放銃。教科書通りの散り方です',
+  firstWin: '🏆 実績解除【まぐれ】統計的有意性は認められませんでした',
+  auto: '🏆 実績解除【人間辞職】あなたの業務はAIに置き換えられました',
+  hint3: '🏆 実績解除【土下座マスター】プライドを3回捨てました',
+  noten: '🏆 実績解除【何もしていない】働かざる者、罰符を払う',
+  yakuman: '🏆 実績解除【奇跡】役満。一生分の運を使い果たしました。帰り道にお気をつけて',
+  bust: '🏆 実績解除【破産】点棒がマイナスに。現実でなくてよかったですね'
+};
+
+/* ============================================================
+   状態
+   ============================================================ */
+let G = null;
+let autoMode = false;
+let riichiMode = false;
+let hintTile = null;
+let humanResolver = null;
+let humanCtx = null;
+let modalResolver = null;
+let modalAutoClosable = false;
+let bubbleSeq = 0;
+const unlocked = new Set();
+const logs = [];
+
+function createPlayers() {
+  const defs = [HUMAN_CHAR, CHARS.inori, CHARS.sebas, CHARS.hannari];
+  return defs.map((ch, i) => ({
+    id: i, char: ch, name: ch.name, short: ch.short, avatar: ch.avatar,
+    isHuman: i === 0, score: 25000,
+    hand: [], melds: [], river: [],
+    riichi: false, ippatsu: false, furitenTemp: false, furitenRiichi: false,
+    safeAfter: new Set(), bubble: null, bubbleId: 0, lastDraw: null, foldAnnounced: false
+  }));
+}
+
+function addLog(text, cls = '') {
+  logs.unshift({ text, cls });
+  if (logs.length > 80) logs.pop();
+  if (G) renderCenter();
+}
+
+function say(pi, key, vars = {}) {
+  const p = G.players[pi];
+  const arr = p.char.lines[key];
+  if (!arr || !arr.length) return '';
+  const t = rand(arr).replace(/\{(\w+)\}/g, (_, k) => (vars[k] !== undefined ? vars[k] : ''));
+  p.bubble = t;
+  const id = ++bubbleSeq;
+  p.bubbleId = id;
+  setTimeout(() => {
+    if (p.bubbleId === id) {
+      p.bubble = null;
+      render();
+    }
+  }, 4800);
+  addLog(`${p.avatar} ${p.short}「${t}」`, 'talk');
+  render();
+  return t;
+}
+
+function achieve(k) {
+  if (unlocked.has(k)) return;
+  unlocked.add(k);
+  toast(ACH[k]);
+}
+
+function toast(msg) {
+  const d = document.createElement('div');
+  d.className = 'toast';
+  d.textContent = msg;
+  document.getElementById('toasts').appendChild(d);
+  setTimeout(() => d.remove(), 4500);
+}
+
+/* ============================================================
+   AI
+   ============================================================ */
+function seenCounts() {
+  const v = new Array(34).fill(0);
+  for (const p of G.players) {
+    for (const r of p.river) if (!r.called) v[r.tile]++;
+    for (const m of p.melds) v[m.tile] += 3;
+  }
+  for (const d of G.doraInd) v[d]++;
+  return v;
+}
+
+function relevant(c, x, mc) {
+  if (c[x] > 0) return true;
+  if (mc === 0 && isYaochu(x)) return true;
+  if (x >= 27) return false;
+  const n = x % 9;
+  return (n >= 1 && c[x - 1] > 0) || (n >= 2 && c[x - 2] > 0) ||
+         (n <= 7 && c[x + 1] > 0) || (n <= 6 && c[x + 2] > 0);
+}
+
+function ukeire(c, mc, sh, seen) {
+  let n = 0;
+  for (let x = 0; x < 34; x++) {
+    const remain = 4 - c[x] - seen[x];
+    if (remain <= 0) continue;
+    if (!relevant(c, x, mc)) continue;
+    c[x]++;
+    if (shanten(c, mc) < sh) n += remain;
+    c[x]--;
+  }
+  return n;
+}
+
+function isDoraTile(t) { return G.doraInd.some(i => doraOf(i) === t); }
+function isYakuhaiFor(pi, t) { return t >= 31 || t === 27 || t === seatWindOf(pi); }
+
+function threatsFor(pi) {
+  const out = [];
+  for (let j = 0; j < 4; j++) {
+    if (j === pi) continue;
+    const q = G.players[j];
+    if (q.riichi) out.push([j, 1.0]);
+    else if (q.melds.length >= 3) out.push([j, 0.6]);
+  }
+  return out;
+}
+
+function dangerOf(tile, j, c, seen) {
+  const th = G.players[j];
+  const safe = new Set(th.river.map(r => r.tile));
+  if (th.riichi) for (const t of th.safeAfter) safe.add(t);
+  if (safe.has(tile)) return 0;
+  let d;
+  if (tile >= 27) {
+    const known = seen[tile] + c[tile];
+    d = known >= 3 ? 1 : known === 2 ? 3 : known === 1 ? 6 : 8;
+  } else {
+    const n = tile % 9;
+    const sb = tile - n;
+    const s = k => safe.has(sb + k);
+    if (n === 0) d = s(3) ? 3 : 8;
+    else if (n === 8) d = s(5) ? 3 : 8;
+    else if (n === 1 || n === 7) d = s(4) ? 5 : 11;
+    else if (n === 2) d = s(5) ? 5 : 12;
+    else if (n === 6) d = s(3) ? 5 : 12;
+    else {
+      const a = s(n - 3), b = s(n + 3);
+      d = (a && b) ? 4 : (a || b) ? 9 : 14;
+    }
+  }
+  if (isDoraTile(tile)) d += 3;
+  return d;
+}
+
+function keepValue(t, pi, c) {
+  let v = 0;
+  if (isDoraTile(t)) v += 4;
+  if (t >= 27) {
+    const yh = isYakuhaiFor(pi, t);
+    if (c[t] >= 2 && yh) v += 10;
+    else if (c[t] === 1) v += yh ? 0.5 : -1.5;
+  } else {
+    const n = t % 9;
+    if (n === 0 || n === 8) v -= 0.8;
+    else if (n === 1 || n === 7) v -= 0.3;
+    else v += 0.3;
+  }
+  return v;
+}
+
+function aiChooseDiscard(pi, prof) {
+  const p = G.players[pi];
+  const mc = p.melds.length;
+  const c = counts(p.hand);
+  const seen = seenCounts();
+  const threats = threatsFor(pi);
+  const cands = [...new Set(p.hand)];
+  const ev = cands.map(t => {
+    c[t]--;
+    const sh = shanten(c, mc);
+    c[t]++;
+    return { tile: t, sh, uke: 0 };
+  });
+  const minSh = Math.min(...ev.map(e => e.sh));
+  for (const e of ev) {
+    if (e.sh <= minSh + 1) {
+      c[e.tile]--;
+      e.uke = ukeire(c, mc, e.sh, seen);
+      c[e.tile]++;
+    }
+  }
+  for (const e of ev) {
+    e.danger = threats.length ? Math.max(...threats.map(([j, w]) => dangerOf(e.tile, j, c, seen) * w)) : 0;
+    e.val = keepValue(e.tile, pi, c);
+  }
+  const fold = threats.length > 0 && minSh >= prof.foldSh;
+  for (const e of ev) {
+    if (fold) e.score = -e.danger * 1000 - e.sh * 30 + e.uke * 0.5 - e.val;
+    else e.score = -e.sh * 10000 + e.uke * 12 - e.val * 6 - e.danger * prof.dw;
+  }
+  ev.sort((a, b) => b.score - a.score);
+  const best = ev[0];
+  best.fold = fold;
+  if (fold && pi !== 0 && !p.foldAnnounced) {
+    p.foldAnnounced = true;
+    const line = rand(p.char.lines.fold).replace('{tile}', tileName(best.tile));
+    addLog(`💭 ${p.short}の思考ログ:「${line}」(危険度 ${best.danger.toFixed(0)})`, 'think');
+  }
+  return best;
+}
+
+function hasYakuDama(pi, discard) {
+  const p = G.players[pi];
+  const h = p.hand.slice();
+  removeOne(h, discard);
+  const ws = getWaits(h, p.melds.length);
+  const ctx = winContext(pi, {});
+  ctx.riichi = false;
+  ctx.ippatsu = false;
+  for (const w of ws) {
+    const c = counts(h);
+    c[w]++;
+    const r = evaluateWin(c, p.melds, w, false, ctx);
+    if (r && r.yakuHan > 0) return true;
+  }
+  return false;
+}
+
+function wantRiichi(pi, ch) {
+  const style = G.players[pi].char.riichiStyle;
+  if (style === 'always') return true;
+  const yaku = hasYakuDama(pi, ch.tile);
+  if (!yaku) return true;
+  if (style === 'dama') return false;
+  return ch.uke >= 5;
+}
+
+function aiTurn(pi, drawn, win) {
+  const p = G.players[pi];
+  if (win) return { type: 'tsumo' };
+  if (p.riichi) return { type: 'discard', tile: drawn };
+  const ch = aiChooseDiscard(pi, p.char.profile);
+  const canR = p.melds.length === 0 && p.score >= 1000 && G.wall.length >= 4 && ch.sh === 0;
+  if (canR && wantRiichi(pi, ch)) return { type: 'discard', tile: ch.tile, riichi: true };
+  return { type: 'discard', tile: ch.tile };
+}
+
+function aiWantsPon(pi, tile) {
+  const p = G.players[pi];
+  if (p.riichi || G.wall.length < 4) return false;
+  const c = counts(p.hand);
+  if (c[tile] < 2) return false;
+  const yakuhai = isYakuhaiFor(pi, tile);
+  const hasYakuMeld = p.melds.some(m => isYakuhaiFor(pi, m.tile));
+  if (!yakuhai && !hasYakuMeld) return false;
+  const before = shanten(c, p.melds.length);
+  c[tile] -= 2;
+  let after = 99;
+  for (let x = 0; x < 34; x++) {
+    if (c[x] > 0) {
+      c[x]--;
+      after = Math.min(after, shanten(c, p.melds.length + 1));
+      c[x]++;
+    }
+  }
+  return yakuhai ? after <= before : after < before;
+}
+
+function riichiCandidates(hand) {
+  const c = counts(hand);
+  const out = [];
+  for (const t of new Set(hand)) {
+    c[t]--;
+    if (shanten(c, 0) === 0) out.push(t);
+    c[t]++;
+  }
+  return out;
+}
+
+/* ============================================================
+   人間の入力
+   ============================================================ */
+function waitHuman(ctx) {
+  return new Promise(res => {
+    humanResolver = res;
+    humanCtx = ctx;
+    riichiMode = false;
+    render();
+    if (autoMode) scheduleAuto();
+  });
+}
+
+function scheduleAuto() {
+  const ctx = humanCtx;
+  if (!ctx) return;
+  setTimeout(() => {
+    if (humanCtx !== ctx || !autoMode) return;
+    resolveHuman(autoDecide(ctx), true);
+  }, SPD());
+}
+
+function autoDecide(ctx) {
+  if (ctx.kind === 'turn') return aiTurn(0, ctx.drawn, ctx.win);
+  if (ctx.kind === 'ron') return true;
+  if (ctx.kind === 'pon') return aiWantsPon(0, ctx.tile);
+  return false;
+}
+
+function resolveHuman(v, isAuto = false) {
+  if (!humanResolver) return;
+  if (humanCtx.kind === 'turn') {
+    if (isAuto) G.stats.auto++;
+    else G.stats.manual++;
+  }
+  const r = humanResolver;
+  humanResolver = null;
+  humanCtx = null;
+  riichiMode = false;
+  hintTile = null;
+  render();
+  r(v);
+}
+
+async function getTurnAction(pi, drawn, win) {
+  const p = G.players[pi];
+  if (pi !== 0) {
+    await sleep(SPD());
+    return aiTurn(pi, drawn, win);
+  }
+  if (p.riichi && !win) {
+    await sleep(autoMode ? SPD() : 380);
+    return { type: 'discard', tile: drawn };
+  }
+  const canRiichi = !p.riichi && p.melds.length === 0 && p.score >= 1000 &&
+    G.wall.length >= 4 && riichiCandidates(p.hand).length > 0;
+  return await waitHuman({ kind: 'turn', drawn, win, canRiichi });
+}
+
+/* ============================================================
+   ゲーム進行
+   ============================================================ */
+function onRiichi(pi) {
+  if (pi === 0) {
+    addLog('🫠 あなた: リーチ！', 'me');
+    say(1 + Math.floor(rnd() * 3), 'humanRiichi');
+  } else {
+    say(pi, 'riichi');
+  }
+}
+
+async function playHand() {
+  const wall = [];
+  for (let t = 0; t < 34; t++) for (let k = 0; k < 4; k++) wall.push(t);
+  shuffle(wall);
+  const dead = wall.splice(0, 14);
+  G.wall = wall;
+  G.doraInd = [dead[0]];
+  G.uraInd = [dead[1]];
+  for (const p of G.players) {
+    p.hand = [];
+    p.melds = [];
+    p.river = [];
+    p.riichi = false;
+    p.ippatsu = false;
+    p.furitenTemp = false;
+    p.furitenRiichi = false;
+    p.safeAfter = new Set();
+    p.lastDraw = null;
+    p.foldAnnounced = false;
+  }
+  for (let k = 0; k < 13; k++) {
+    for (let i = 0; i < 4; i++) G.players[(G.dealer + i) % 4].hand.push(G.wall.pop());
+  }
+  G.players.forEach(p => sortTiles(p.hand));
+  riichiMode = false;
+  hintTile = null;
+  addLog(`━━ 東${G.round + 1}局 ${G.honba}本場 ━━ 親: ${G.players[G.dealer].short}`, 'sys');
+  addLog(rand(TIPS), 'tip');
+  render();
+  await sleep(SPD() + 300);
+
+  let cur = G.dealer;
+  let needDraw = true;
+  while (true) {
+    const p = G.players[cur];
+    G.cur = cur;
+    let drawn = null;
+    let win = null;
+    if (needDraw) {
+      if (G.wall.length === 0) return exhaustiveDraw();
+      drawn = G.wall.pop();
+      p.hand.push(drawn);
+      p.lastDraw = drawn;
+      p.furitenTemp = false;
+      win = checkWin(cur, drawn, true, { haitei: G.wall.length === 0 });
+    }
+    render();
+
+    const act = await getTurnAction(cur, drawn, win);
+    if (act.type === 'tsumo') return settleWin(cur, null, drawn, win, true);
+
+    const tile = act.tile;
+    removeOne(p.hand, tile);
+    sortTiles(p.hand);
+    p.lastDraw = null;
+    if (p.riichi) p.ippatsu = false;
+    if (act.riichi) {
+      p.riichi = true;
+      p.ippatsu = true;
+    }
+    p.river.push({ tile, riichi: !!act.riichi, called: false, tsumogiri: drawn !== null && tile === drawn });
+    for (const q of G.players) if (q !== p && q.riichi) q.safeAfter.add(tile);
+    hintTile = null;
+    riichiMode = false;
+
+    if (act.riichi) onRiichi(cur);
+    else if (cur !== 0 && rnd() < 0.06) say(cur, 'idle');
+    else if (cur === 0 && rnd() < 0.07) say(1 + Math.floor(rnd() * 3), 'idle');
+    render();
+    await sleep(Math.max(100, SPD() * 0.4));
+
+    // ロン判定（頭ハネ）
+    const houtei = G.wall.length === 0;
+    for (let k = 1; k < 4; k++) {
+      const oi = (cur + k) % 4;
+      const o = G.players[oi];
+      const c = counts(o.hand);
+      c[tile]++;
+      if (shanten(c, o.melds.length) !== -1) continue;
+      const res = isFuriten(oi) ? null : checkWin(oi, tile, false, { houtei });
+      let take = false;
+      if (res) take = oi === 0 ? await waitHuman({ kind: 'ron', tile, win: res }) : true;
+      if (take) return settleWin(oi, cur, tile, res, false);
+      o.furitenTemp = true;
+      if (o.riichi) o.furitenRiichi = true;
+    }
+    if (act.riichi) {
+      p.score -= 1000;
+      G.kyotaku++;
+      render();
+    }
+
+    // ポン判定
+    if (G.wall.length > 0) {
+      let ponned = false;
+      for (let k = 1; k < 4; k++) {
+        const oi = (cur + k) % 4;
+        const o = G.players[oi];
+        if (o.riichi) continue;
+        if (o.hand.filter(t => t === tile).length < 2) continue;
+        const want = oi === 0 ? await waitHuman({ kind: 'pon', tile }) : aiWantsPon(oi, tile);
+        if (want) {
+          removeOne(o.hand, tile);
+          removeOne(o.hand, tile);
+          o.melds.push({ tile, from: cur });
+          p.river[p.river.length - 1].called = true;
+          G.players.forEach(q => { q.ippatsu = false; });
+          if (oi !== 0) say(oi, 'pon');
+          else addLog(`🫠 あなた: ポン（${tileName(tile)}）`, 'me');
+          cur = oi;
+          needDraw = false;
+          ponned = true;
+          render();
+          await sleep(SPD() * 0.5);
+          break;
+        }
+      }
+      if (ponned) continue;
+    }
+    cur = (cur + 1) % 4;
+    needDraw = true;
+  }
+}
+
+function settleWin(wi, li, tile, res, isTsumo) {
+  const d = [0, 0, 0, 0];
+  const up = x => Math.ceil(x / 100) * 100;
+  const dealerWin = wi === G.dealer;
+  if (isTsumo) {
+    for (let j = 0; j < 4; j++) {
+      if (j === wi) continue;
+      let a = dealerWin ? up(res.base * 2) : (j === G.dealer ? up(res.base * 2) : up(res.base));
+      a += 100 * G.honba;
+      d[j] -= a;
+      d[wi] += a;
+    }
+  } else {
+    const a = up(res.base * (dealerWin ? 6 : 4)) + 300 * G.honba;
+    d[li] -= a;
+    d[wi] += a;
+  }
+  const handPoints = d[wi];
+  d[wi] += G.kyotaku * 1000;
+  G.kyotaku = 0;
+  const w = G.players[wi];
+  const hand = isTsumo ? w.hand.slice() : w.hand.concat([tile]);
+  return { type: 'win', winner: wi, loser: li, tile, res, isTsumo, deltas: d, hand, melds: w.melds.slice(), handPoints };
+}
+
+function exhaustiveDraw() {
+  const ten = G.players.map(p => shanten(counts(p.hand), p.melds.length) === 0);
+  const n = ten.filter(Boolean).length;
+  const d = [0, 0, 0, 0];
+  if (n > 0 && n < 4) {
+    for (let i = 0; i < 4; i++) d[i] = ten[i] ? 3000 / n : -3000 / (4 - n);
+  }
+  return { type: 'draw', tenpai: ten, deltas: d, dealerTenpai: ten[G.dealer] };
+}
+
+async function runGame() {
+  G = {
+    players: createPlayers(),
+    round: 0, honba: 0, kyotaku: 0, dealer: 0,
+    wall: [], doraInd: [], uraInd: [],
+    stats: { manual: 0, auto: 0, hints: 0, dealIns: 0, wins: 0 },
+    reveal: false, cur: -1
+  };
+  render();
+  for (let i = 1; i <= 3; i++) {
+    say(i, 'intro');
+    await sleep(Math.max(300, SPD() * 1.6));
+  }
+  while (true) {
+    const r = await playHand();
+    G.cur = -1;
+    G.reveal = true;
+    for (let i = 0; i < 4; i++) G.players[i].score += r.deltas[i];
+    if (G.players[0].score < 0) achieve('bust');
+    render();
+    await showResult(r);
+    G.reveal = false;
+    if (G.players.some(p => p.score < 0)) break;
+    const renchan = r.type === 'win' ? r.winner === G.dealer : r.dealerTenpai;
+    if (r.type === 'draw' || renchan) G.honba++;
+    else G.honba = 0;
+    if (!renchan) {
+      G.dealer = (G.dealer + 1) % 4;
+      G.round++;
+    }
+    if (G.round >= 4) break;
+  }
+  await showFinal();
+}
+
+/* ============================================================
+   描画
+   ============================================================ */
+function tileHTML(t, cls = '', attrs = '') {
+  if (t < 27) {
+    const si = Math.floor(t / 9);
+    const s = ['m', 'p', 's'][si];
+    const n = t % 9;
+    const top = s === 'm' ? KNUM[n] : String(n + 1);
+    return `<div class="tile ${s} ${cls}" ${attrs}><span class="n">${top}</span><span class="s">${SUIT_NAMES[si]}</span></div>`;
+  }
+  return `<div class="tile z ${HONOR_CLS[t - 27]} ${cls}" ${attrs}><span class="n">${HONOR_NAMES[t - 27]}</span></div>`;
+}
+
+function backHTML(cls = '') { return `<div class="tile back ${cls}"></div>`; }
+
+function meldsHTML(p) {
+  return p.melds.map(m => `<span class="meld">${[0, 1, 2].map(() => tileHTML(m.tile, 'sm')).join('')}</span>`).join('');
+}
+
+function riverHTML(p) {
+  return p.river.map(r => {
+    let cls = 'sm';
+    if (r.riichi) cls += ' rtile';
+    if (r.called) cls += ' called';
+    if (r.tsumogiri) cls += ' tg';
+    return tileHTML(r.tile, cls);
+  }).join('');
+}
+
+function plateHTML(p, i) {
+  const w = WIND_NAMES[(i - G.dealer + 4) % 4];
+  return `<div class="plate ${G.cur === i ? 'active' : ''}">
+    <span class="avatar">${p.avatar}</span>
+    <div class="pinfo">
+      <div class="pname">${esc(p.name)}<span class="wind ${w === '東' ? 'oya' : ''}">${w}</span>${p.riichi ? '<span class="stick">立直</span>' : ''}</div>
+      <div class="ptitle">${esc(p.char.title)}</div>
+    </div>
+    <div class="pscore">${p.score.toLocaleString()}</div>
+  </div>`;
+}
+
+function renderSeat(i) {
+  const p = G.players[i];
+  const el = document.getElementById('seat' + i);
+  if (i === 0) {
+    el.innerHTML = renderHumanHTML();
+    return;
+  }
+  const hand = G.reveal
+    ? sortTiles(p.hand.slice()).map(t => tileHTML(t, 'sm')).join('')
+    : p.hand.map(() => backHTML('xs')).join('');
+  el.innerHTML = `
+    <div class="col-a">
+      ${plateHTML(p, i)}
+      <div class="opp-hand">${hand}</div>
+      <div class="melds">${meldsHTML(p)}</div>
+    </div>
+    <div class="col-b"><div class="river">${riverHTML(p)}</div></div>
+    ${p.bubble ? `<div class="bubble">${esc(p.bubble)}</div>` : ''}`;
+}
+
+function humanStatus() {
+  const p = G.players[0];
+  const mc = p.melds.length;
+  const c = counts(p.hand);
+  if (p.hand.length % 3 === 1) {
+    const s = shanten(c, mc);
+    if (s === 0) {
+      const w = getWaits(p.hand, mc);
+      const f = isFuriten(0);
+      return `聴牌 ／ 待ち: ${w.map(tileName).join(' ') || '（空聴）'}${f ? ' <span class="warn">【フリテン】自業自得です</span>' : ''}`;
+    }
+    return `${s}向聴${s >= 3 ? '（AI推定: 今世ではテンパりません）' : ''}`;
+  }
+  if (shanten(c, mc) === -1) return '和了形です。気づいていますか？';
+  let m = 9;
+  for (const t of new Set(p.hand)) {
+    c[t]--;
+    m = Math.min(m, shanten(c, mc));
+    c[t]++;
+  }
+  return m === 0 ? '打牌次第で聴牌' : `打牌後 最善 ${m}向聴`;
+}
+
+function btn(act, label, cls = '') {
+  return `<button class="btn ${cls}" data-act="${act}">${label}</button>`;
+}
+
+function renderHumanHTML() {
+  const p = G.players[0];
+  const ctx = humanCtx;
+  const turn = ctx && ctx.kind === 'turn';
+  const cands = turn && riichiMode ? new Set(riichiCandidates(p.hand)) : null;
+
+  let tiles = p.hand.slice();
+  let drawnT = null;
+  if (p.lastDraw !== null && tiles.includes(p.lastDraw)) {
+    removeOne(tiles, p.lastDraw);
+    drawnT = p.lastDraw;
+  }
+  sortTiles(tiles);
+  let hlDone = false;
+  const one = (t, isDrawn) => {
+    let cls = '';
+    const allowed = turn && !autoMode && (!p.riichi || isDrawn) && (!cands || cands.has(t));
+    if (allowed) cls += ' clickable';
+    if (cands && !cands.has(t)) cls += ' dim';
+    if (isDrawn) cls += ' drawn';
+    if (hintTile === t && !hlDone) {
+      cls += ' hl';
+      hlDone = true;
+    }
+    return tileHTML(t, cls, `data-tile="${t}"`);
+  };
+  let handHtml = tiles.map(t => one(t, false)).join('');
+  if (drawnT !== null) handHtml += one(drawnT, true);
+  if (G.reveal && !ctx) handHtml = sortTiles(p.hand.slice()).map(t => tileHTML(t)).join('');
+
+  let msg = '';
+  let ctrl = '';
+  if (ctx && autoMode) {
+    msg = '<span class="automsg">🤖 AIが代打ち中…あなたは見ているだけです。いつも通りですね。</span>';
+  } else if (ctx) {
+    if (ctx.kind === 'turn') {
+      if (ctx.win) ctrl += btn('tsumo', 'ツモ！', 'win');
+      if (p.riichi) {
+        ctrl += btn('tsumogiri', 'ツモ切り');
+        msg = '<span class="prompt">ツモれます。まさか見逃しませんよね？</span>';
+      } else {
+        if (ctx.canRiichi) ctrl += btn('riichi', riichiMode ? 'リーチ取消' : 'リーチ', riichiMode ? 'on' : '');
+        msg = riichiMode
+          ? '<span class="prompt">リーチ宣言牌を選んでください（光っている牌）</span>'
+          : `<span class="prompt">${ctx.win ? 'ツモれます！' : ''}捨てる牌をクリック</span>`;
+      }
+    } else if (ctx.kind === 'ron') {
+      msg = `<span class="prompt">${tileName(ctx.tile)} でロンできます（${ctx.win.han}翻）</span>`;
+      ctrl += btn('yes', 'ロン！', 'win') + btn('no', '見逃す（慈悲）');
+    } else if (ctx.kind === 'pon') {
+      const warn = isYakuhaiFor(0, ctx.tile) ? '' : '（役がないと後で泣きます）';
+      msg = `<span class="prompt">${tileName(ctx.tile)} をポンしますか？${warn}</span>`;
+      ctrl += btn('yes', 'ポン') + btn('no', 'スルー');
+    }
+  }
+
+  return `
+    <div class="h-river"><div class="river">${riverHTML(p)}</div></div>
+    <div class="h-row">
+      ${plateHTML(p, 0)}
+      <div class="hand">${handHtml}</div>
+      <div class="melds">${meldsHTML(p)}</div>
+    </div>
+    <div class="h-ctrl">
+      <span class="status">${G.wall.length || p.hand.length ? humanStatus() : ''}</span>
+      ${msg}
+      ${ctrl}
+    </div>`;
+}
+
+function renderCenter() {
+  const el = document.getElementById('center');
+  const tot = G.stats.auto + G.stats.manual;
+  const dep = tot ? Math.round(G.stats.auto * 100 / tot) : 0;
+  const uraShow = G.reveal && G.players.some(p => p.riichi);
+  el.innerHTML = `
+    <div class="info">
+      <div class="round">東${Math.min(G.round, 3) + 1}局 <small>${G.honba}本場</small></div>
+      <div class="row">供託 ${G.kyotaku}本 ／ 残り牌 <b>${G.wall.length}</b></div>
+      <div class="dora">ドラ表示牌 ${G.doraInd.map(t => tileHTML(t, 'sm')).join('')}
+        ${uraShow ? ' 裏 ' + G.uraInd.map(t => tileHTML(t, 'sm')).join('') : ''}</div>
+      <div class="row">AI依存度 <b>${dep}%</b> ／ 土下座 ${G.stats.hints}回 ／ 献金 ${G.stats.dealIns}回</div>
+    </div>
+    <div class="log">${logs.map(l => `<div class="${l.cls}">${esc(l.text)}</div>`).join('')}</div>`;
+}
+
+function render() {
+  if (!G) return;
+  for (let i = 0; i < 4; i++) renderSeat(i);
+  renderCenter();
+}
+
+/* ============================================================
+   モーダル
+   ============================================================ */
+function showModal(html, label, autoClosable) {
+  return new Promise(res => {
+    const box = document.getElementById('modalBox');
+    box.innerHTML = html + `<div class="mbtns"><button class="btn primary" id="modalOk">${label}</button></div>`;
+    document.getElementById('modal').classList.remove('hidden');
+    const close = () => {
+      if (modalResolver !== close) return;
+      modalResolver = null;
+      document.getElementById('modal').classList.add('hidden');
+      res();
+    };
+    modalResolver = close;
+    modalAutoClosable = !!autoClosable;
+    document.getElementById('modalOk').onclick = close;
+    if (autoClosable && autoMode) setTimeout(close, 3800);
+  });
+}
+
+function pointText(r) {
+  const base = r.res.base;
+  const up = x => Math.ceil(x / 100) * 100;
+  if (!r.isTsumo) return `${up(base * (r.winner === G.dealer ? 6 : 4))}点`;
+  if (r.winner === G.dealer) return `${up(base * 2)}点オール`;
+  return `${up(base)}・${up(base * 2)}点`;
+}
+
+function reactions(r) {
+  const q = [];
+  let narr = '';
+  if (r.type === 'win') {
+    const wi = r.winner, li = r.loser;
+    if (wi === 0) {
+      G.stats.wins++;
+      achieve('firstWin');
+      if (r.res.yakuman) achieve('yakuman');
+      if (li !== null) q.push([li, say(li, 'dealtInHuman')]);
+      const o = rand([1, 2, 3].filter(x => x !== li));
+      q.push([o, say(o, 'humanWin')]);
+      narr = rand(NARR.humanWin);
+    } else if (r.isTsumo) {
+      q.push([wi, say(wi, 'tsumo')]);
+      narr = rand(NARR.aiTsumo);
+    } else if (li === 0) {
+      q.push([wi, say(wi, 'ronHuman')]);
+      G.stats.dealIns++;
+      achieve('firstDealIn');
+      if (G.players[0].riichi) achieve('riichiDealIn');
+      narr = rand(NARR.humanDealIn);
+    } else {
+      q.push([wi, say(wi, 'ronOther')]);
+      q.push([li, say(li, 'dealtInOther')]);
+      narr = rand(NARR.aiai);
+    }
+  } else {
+    const o = 1 + Math.floor(rnd() * 3);
+    q.push([o, say(o, 'draw')]);
+    if (r.tenpai[0]) {
+      narr = '流局。あなたはテンパイでした。だから何だという話ですが。';
+    } else {
+      narr = 'ノーテン罰符。何もしなかった者が罰せられる。資本主義の縮図ですね。';
+      achieve('noten');
+    }
+  }
+  return { q, narr };
+}
+
+function resultHandHTML(hand, winTile, melds) {
+  const h = hand.slice();
+  removeOne(h, winTile);
+  sortTiles(h);
+  return `<div class="res-hand">${h.map(t => tileHTML(t)).join('')}<span class="gap"></span>${tileHTML(winTile, 'win')}${melds.length ? '<span class="gap"></span>' : ''}${melds.map(m => '<span class="meld">' + [0, 1, 2].map(() => tileHTML(m.tile, 'sm')).join('') + '</span>').join('')}</div>`;
+}
+
+async function showResult(r) {
+  const { q, narr } = reactions(r);
+  let html = '';
+  if (r.type === 'win') {
+    const w = G.players[r.winner];
+    html += `<h2>${r.isTsumo ? 'ツモ' : 'ロン'}！</h2>`;
+    html += `<div class="who">${w.avatar} ${esc(w.name)}${r.loser !== null ? ` ← 放銃: ${G.players[r.loser].avatar} ${esc(G.players[r.loser].name)}` : ''}</div>`;
+    html += resultHandHTML(r.hand, r.tile, r.melds);
+    html += `<div class="dora">ドラ表示 ${G.doraInd.map(t => tileHTML(t, 'sm')).join('')}${w.riichi ? ' 裏ドラ表示 ' + G.uraInd.map(t => tileHTML(t, 'sm')).join('') : ''}</div>`;
+    html += '<table class="yaku">' + r.res.yaku.map(([n, h]) => `<tr><td>${n}</td><td>${typeof h === 'number' ? h + '翻' : h}</td></tr>`).join('') + '</table>';
+    const hf = r.res.yakuman ? r.res.limit : `${r.res.han}翻 ${r.res.fu}符 ${r.res.limit}`;
+    html += `<div class="res-pt">${hf} <b>${pointText(r)}</b></div>`;
+  } else {
+    html += '<h2>流局</h2>';
+    html += '<table class="delta">' + G.players.map((p, i) =>
+      `<tr><td>${p.avatar} ${esc(p.short)}</td><td>${r.tenpai[i] ? '<span class="plus">聴牌</span>' : '<span class="minus">不聴</span>'}</td></tr>`).join('') + '</table>';
+  }
+  html += `<div class="narr">${esc(narr)}</div>`;
+  html += q.filter(x => x[1]).map(([pi, t]) => `<div class="quote">${G.players[pi].avatar} <b>${esc(G.players[pi].short)}</b>「${esc(t)}」</div>`).join('');
+  html += '<table class="delta">' + G.players.map((p, i) => {
+    const d = r.deltas[i];
+    const cls = d > 0 ? 'plus' : d < 0 ? 'minus' : '';
+    return `<tr><td>${p.avatar} ${esc(p.short)}</td><td class="${cls}">${d > 0 ? '+' : ''}${d}</td><td>${p.score.toLocaleString()}点</td></tr>`;
+  }).join('') + '</table>';
+  addLog(`▶ ${r.type === 'win' ? G.players[r.winner].short + (r.isTsumo ? ' ツモ和了' : ' ロン和了') : '流局'}`, 'res');
+  await showModal(html, '次の局へ（拒否権なし）', true);
+}
+
+async function showFinal() {
+  const order = [0, 1, 2, 3].sort((a, b) => G.players[b].score - G.players[a].score || a - b);
+  const rank = order.indexOf(0) + 1;
+  const tot = G.stats.auto + G.stats.manual;
+  const dep = tot ? Math.round(G.stats.auto * 100 / tot) : 0;
+  const me = G.players[0];
+  let html = '<h2>終局</h2>';
+  html += '<table class="rank-list">' + order.map((pi, k) =>
+    `<tr><td>${k + 1}位</td><td>${G.players[pi].avatar} ${esc(G.players[pi].name)}</td><td><b>${G.players[pi].score.toLocaleString()}</b>点</td></tr>`).join('') + '</table>';
+  if (G.kyotaku > 0) html += `<div class="narr">残った供託${G.kyotaku * 1000}点は、運営が「手数料」として没収しました。</div>`;
+
+  if (rank === 4) {
+    html += `<div class="letter">件名：【選考結果のご連絡】慇懃無礼麻雀 最終選考につきまして
+
+${esc(me.name)} 様
+
+この度は、弊卓の麻雀にご参加いただき、誠にありがとうございました。
+厳正なる選考の結果、誠に残念ながら、今回はあなた様の点棒を
+ご返却いたしかねる結果となりました。
+
+　最終スコア：${me.score.toLocaleString()}点（4位）
+　AI依存度　：${dep}%
+　土下座回数：${G.stats.hints}回
+　献金回数　：${G.stats.dealIns}回
+
+末筆ではございますが、あなた様の今後の一層のご活躍を
+AI一同、心よりお祈り申し上げます。
+
+人事AI 祈里</div>`;
+  } else if (rank === 1) {
+    html += '<div class="narr">おめでとうございます。あなたはAIに勝利しました。<br>この結果は「異常値」として学習データから除外されます。</div>';
+    if (dep >= 50) html += `<div class="narr">なお、あなたの打牌の${dep}%はAIによる自動打ちでした。つまり勝ったのはAIです。</div>`;
+  } else if (rank === 2) {
+    html += '<div class="narr">2位。可もなく不可もなく。人類の平均的な姿です。誇りも反省もしなくて結構です。</div>';
+  } else {
+    html += '<div class="narr">3位。ラスでなかったことを喜ぶ姿は、実に人間らしくて微笑ましいです。</div>';
+  }
+  const key = rank === 1 ? 'finalHumanWin' : 'finalHumanLose';
+  for (let i = 1; i <= 3; i++) {
+    html += `<div class="quote">${G.players[i].avatar} <b>${esc(G.players[i].short)}</b>「${esc(rand(G.players[i].char.lines[key]))}」</div>`;
+  }
+  html += `<div class="narr">解除した実績: ${unlocked.size} / ${Object.keys(ACH).length}</div>`;
+  await showModal(html, 'もう一度（懲りずに）', false);
+  location.reload();
+}
+
+/* ============================================================
+   イベント
+   ============================================================ */
+document.getElementById('seat0').addEventListener('click', e => {
+  const actEl = e.target.closest('[data-act]');
+  if (actEl && humanCtx && !autoMode) {
+    const a = actEl.dataset.act;
+    if (a === 'tsumo') resolveHuman({ type: 'tsumo' });
+    else if (a === 'tsumogiri') resolveHuman({ type: 'discard', tile: humanCtx.drawn });
+    else if (a === 'riichi') {
+      riichiMode = !riichiMode;
+      render();
+    } else if (a === 'yes') resolveHuman(true);
+    else if (a === 'no') resolveHuman(false);
+    return;
+  }
+  const tEl = e.target.closest('[data-tile]');
+  if (!tEl || !tEl.classList.contains('clickable')) return;
+  resolveHuman({ type: 'discard', tile: +tEl.dataset.tile, riichi: riichiMode });
+});
+
+document.getElementById('btnAuto').addEventListener('click', () => {
+  autoMode = !autoMode;
+  const b = document.getElementById('btnAuto');
+  b.textContent = autoMode ? '🤖 自動打ち: ON（AI）' : '🤖 自動打ち: OFF（人間）';
+  b.classList.toggle('on', autoMode);
+  if (!G) return;
+  if (autoMode) {
+    achieve('auto');
+    say(1 + Math.floor(rnd() * 3), 'auto');
+    scheduleAuto();
+    if (modalResolver && modalAutoClosable) {
+      const r = modalResolver;
+      setTimeout(() => { if (modalResolver === r) r(); }, 2500);
+    }
+  } else {
+    addLog('🫠 あなた: 自動打ちを解除。人間に戻りました（一時的に）', 'me');
+    render();
+  }
+});
+
+document.getElementById('btnHint').addEventListener('click', () => {
+  if (!G) return;
+  if (!humanCtx || humanCtx.kind !== 'turn') {
+    toast('今はヒントを乞うタイミングではございません。空気を読む練習から始めましょう。');
+    return;
+  }
+  const p = G.players[0];
+  G.stats.hints++;
+  if (G.stats.hints === 3) achieve('hint3');
+  const who = 1 + Math.floor(rnd() * 3);
+  if (humanCtx.win) {
+    say(who, 'hint', { tile: 'ツモ和了' });
+    addLog('（推奨: ツモ。…これを聞く必要がありましたか？）', 'think');
+    return;
+  }
+  if (p.riichi) {
+    toast('リーチ後に選択肢はございません。人生と同じでございます。');
+    return;
+  }
+  const ch = aiChooseDiscard(0, HUMAN_CHAR.profile);
+  hintTile = ch.tile;
+  say(who, 'hint', { tile: tileName(ch.tile) });
+  const shTxt = ch.sh === 0 ? '聴牌' : ch.sh + '向聴';
+  addLog(`（推奨: ${tileName(ch.tile)} ／ 打牌後${shTxt} ／ 有効牌${ch.uke}枚${ch.fold ? ' ／ オリ推奨' : ''}${ch.danger ? ' ／ 危険度' + ch.danger.toFixed(0) : ''}）`, 'think');
+  render();
+});
+
+document.getElementById('selSpeed').addEventListener('change', e => {
+  speedKey = e.target.value;
+  if (speedKey === 'turbo') toast('人間不要モード。あなたの目が追いつく必要はありません。');
+});
+
+document.getElementById('btnNew').addEventListener('click', () => {
+  if (confirm('対局を放棄しますか？（AIたちはこれを「逃走」として記録します）')) location.reload();
+});
+
+/* ============================================================
+   起動
+   ============================================================ */
+(async function boot() {
+  let visits = 1;
+  try {
+    visits = +(localStorage.getItem('ingin_visits') || 0) + 1;
+    localStorage.setItem('ingin_visits', visits);
+  } catch (e) {
+    visits = 1;
+  }
+  const visitMsg = visits > 1
+    ? `${visits}回目のご来店ですね。学習能力については、ノーコメントとさせていただきます。`
+    : '初めてのご来店ですね。最初で最後にならないことを、形式上お祈りしております。';
+  const card = (c, seat) => `<div class="card"><div class="big">${c.avatar}</div><div class="cn">${esc(c.name)}</div><div class="ct">${seat} ／ ${esc(c.title)}</div>「${esc(c.lines.intro[0])}」</div>`;
+  const html = `
+    <h2>慇懃無礼麻雀</h2>
+    <div class="narr">〜AIたちは今日も丁寧に貴方を見下す〜<br>${esc(visitMsg)}</div>
+    <div class="cards">
+      ${card(CHARS.hannari, '上家')}
+      ${card(CHARS.sebas, '対面')}
+      ${card(CHARS.inori, '下家')}
+    </div>
+    <div class="terms">
+      【利用規約】<br>
+      第1条　本ゲームで失った点棒・自尊心・時間について、運営は一切の責任を負いません。<br>
+      第2条　ルールは東風戦、チー・カン・赤ドラなし。理由は第1条と同様です。<br>
+      第3条　AIの発言はすべて丁寧語です。内容が丁寧であるとは申し上げておりません。<br>
+      第4条　「🤖 自動打ち」を使用した場合、あなたの勝利はAIの功績として計上されます。<br>
+      第5条　本規約に同意しない権利は、あなたにはございません。
+    </div>`;
+  await showModal(html, '同意して着席する（拒否権はありません）', false);
+  runGame();
+})();
+</script>
+</body>
+</html>
